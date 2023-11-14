@@ -1,19 +1,33 @@
-resource "google_kms_key_ring" "keyring" {
-  name     = "keyring-test"
-  location = "europe-north1"
+
+provider "google" {
   project = var.project_id
+  region  = var.region
 }
 
-resource "google_kms_crypto_key" "example-asymmetric-sign-key" {
-  name     = "crypto-asymetric-key-example"
-  key_ring = google_kms_key_ring.keyring.id
-  purpose  = "ASYMMETRIC_SIGN"
-
-  version_template {
-    algorithm = "EC_SIGN_P384_SHA384"
+resource "google_storage_bucket" "terraform_state_bucket" {
+  name          = "state-bucket-nour-personal-bucket-tfstate"
+  force_destroy = true
+  location      = "US"
+  storage_class = "STANDARD"
+  versioning {
+    enabled = true
   }
+  # encryption {
+  #   default_kms_key_name = google_kms_crypto_key.terraform_state_bucket.id
+  # }
+  # depends_on = [
+  #   google_project_iam_member.default
+  # ]
+}
 
-  lifecycle {
-    prevent_destroy = true
+terraform {
+  backend "gcs" {
+    bucket = "state-bucket-nour-personal-bucket-tfstate"
+    prefix = "terraform/state"
   }
+}
+
+module "kms" {
+  source = "./kms"
+  project_id = var.project_id
 }
